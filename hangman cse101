@@ -1,0 +1,56 @@
+import random
+
+def hangman():
+    print("Let's play hangman!")
+    print("--------------------")
+
+    # Word bank of possible words
+    word_bank = ["python", "galaxy", "horse", "computer", "hangman", "basketball", "science", "ocean"]
+    word = random.choice(word_bank)  # Randomly pick one
+    lives = 6  # Default number of lives
+
+    # Create a display version of the word (list of underscores)
+    display = ["_"] * len(word)
+
+    # Store letters that have already been guessed
+    guessed_letters = []
+
+    # Main game loop
+    while lives > 0 and "_" in display:
+        print("\nWord:", " ".join(display))
+        print(f"Lives left: {lives}")
+
+        guess = input("Guess a letter: ").lower().strip()
+
+        # --- Input validation ---
+        if len(guess) != 1 or not guess.isalpha():
+            print("Invalid input! Please enter a single letter (A–Z).")
+            continue
+
+        if guess in guessed_letters:
+            print("You've already guessed that letter. Try another one.")
+            continue
+
+        guessed_letters.append(guess)
+
+        # --- Check if guess is in the word ---
+        if guess in word:
+            print(f"Good job! '{guess}' is in the word.")
+            # Replace underscores with the correct letter
+            for i in range(len(word)):
+                if word[i] == guess:
+                    display[i] = guess
+        else:
+            lives -= 1
+            print(f"Letter not found! '{guess}' is not in the word.")
+
+    # --- End of game ---
+    if "_" not in display:
+        print("\n🎉 Congratulations! You guessed the word:", word)
+    else:
+        print("\n💀 Game over! The word was:", word)
+
+
+# Run the game
+if __name__ == "__main__":
+    hangman()
