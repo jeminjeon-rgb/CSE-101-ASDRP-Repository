@@ -1,0 +1,132 @@
+"""
+Reddit Recipe Finder
+--------------------
+This program searches r/Recipes for specific topics (like "Christmas" or "Pie")
+using the Reddit API (PRAW). It finds posts that have the "Recipes" flair, grabs:
+  1. The post image
+  2. The top-upvoted recipe comment (or the post text if no comment)
+  3. The username of the person who posted it
+
+It then saves the image locally and prints the results to the console.
+
+* Make sure to remove your Reddit credentials before turning this in! *
+"""
+
+# ==== IMPORTS ====
+import praw       # Python Reddit API Wrapper
+import requests   # for downloading images
+import os         # for saving files
+import re         # for cleaning filenames
+
+# ==== REDDIT AUTHENTICATION ====
+# You must create a Reddit account and Reddit App at:
+# https://www.reddit.com/prefs/apps
+# Then fill in your credentials below.
+reddit = praw.Reddit(
+    client_id="YOUR_CLIENT_ID",          # <-- replace with your client ID
+    client_secret="YOUR_CLIENT_SECRET",  # <-- replace with your client secret
+    user_agent="recipe_bot_demo"         # <-- name your app (example: "recipe_bot_demo")
+)
+
+# ==== SEARCH TOPICS ====
+topics = ["christmas", "fruitcake", "meatloaf", "new year's", "pie"]
+
+# Folder to save images
+if not os.path.exists("recipe_images"):
+    os.mkdir("recipe_images")
+
+
+# ==== FUNCTION DEFINITIONS ====
+
+def get_image_url(post):
+    """
+    Try to find a valid image URL from a Reddit post.
+    It checks if the post URL ends with a common image extension.
+    """
+    if post.url.endswith((".jpg", ".png", ".jpeg")):
+        return post.url
+    # If the post has preview images (hosted by Reddit)
+    if hasattr(post, "preview"):
+        try:
+            return post.preview["images"][0]["source"]["url"]
+        except Exception:
+            return None
+    return None
+
+
+def download_image(url, filename):
+    """Download an image from a URL and save it to 'recipe_images' folder."""
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            with open(os.path.join("recipe_images", filename), "wb") as f:
+                f.write(response.content)
+            return True
+        else:
+            print("Could not download image:", url)
+            return False
+    except Exception as e:
+        print("Error downloading image:", e)
+        return False
+
+
+def get_top_comment(post):
+    """
+    Get the most upvoted top-level comment (the one with the recipe).
+    If no comments exist, return the post text.
+    """
+    post.comments.replace_more(limit=0)
+    if not post.comments:
+        return post.selftext
+    top_comment = max(post.comments, key=lambda c: c.score, default=None)
+    if top_comment:
+        return top_comment.body
+    return post.selftext
+
+
+# ==== MAIN PROGRAM ====
+def main():
+    subreddit = reddit.subreddit("recipes")
+
+    for topic in topics:
+        print("\n==============================")
+        print("Searching for topic:", topic)
+        print("==============================")
+
+        # Search for top posts related to that topic
+        results = subreddit.search(topic, sort="top", time_filter="all", limit=20)
+        found = False
+
+        for post in results:
+            # Make sure the post has the "Recipes" flair
+            if post.link_flair_text and "recipe" in post.link_flair_text.lower():
+                image_url = get_image_url(post)
+                if image_url:
+                    # Download image with topic name
+                    safe_topic = re.sub(r"[^\w\s-]", "", topic).replace(" ", "_")
+                    image_name = safe_topic + ".jpg"
+                    download_image(image_url, image_name)
+
+                    # Get the recipe from the top comment
+                    recipe_text = get_top_comment(post)
+                    author = post.author.name if post.author else "[deleted]"
+
+                    print(f"\nTitle: {post.title}")
+                    print(f"By user: u/{author}")
+                    print(f"Image saved as: {image_name}")
+                    print("\n--- Recipe ---")
+                    print(recipe_text[:500], "...")  # print first 500 chars for readability
+                    print("\n--- End ---")
+
+                    found = True
+                    break  # stop after the first valid recipe
+
+        if not found:
+            print("No valid recipe post found for topic:", topic)
+
+    print("\nAll done! Check your 'recipe_images' folder for the pictures.")
+
+
+# ==== RUN PROGRAM ====
+if __name__ == "__main__":
+    main()
