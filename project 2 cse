@@ -1,16 +1,4 @@
-"""
-Reddit Recipe Finder
---------------------
-This program searches r/Recipes for specific topics (like "Christmas" or "Pie")
-using the Reddit API (PRAW). It finds posts that have the "Recipes" flair, grabs:
-  1. The post image
-  2. The top-upvoted recipe comment (or the post text if no comment)
-  3. The username of the person who posted it
 
-It then saves the image locally and prints the results to the console.
-
-* Make sure to remove your Reddit credentials before turning this in! *
-"""
 
 # ==== IMPORTS ====
 import praw       # Python Reddit API Wrapper
